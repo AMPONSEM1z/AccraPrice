@@ -47,7 +47,7 @@ export default async function CheckoutPage() {
     (sum, item) => sum + item.products.price * item.quantity,
     0
   );
-  const shipping = 10;
+  const shipping = 0;
   const total = subtotal + shipping;
 
   return (
@@ -110,7 +110,7 @@ export default async function CheckoutPage() {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-muted-foreground">Delivery</span>
                       <span className="font-medium">
                         ₵{shipping.toFixed(2)}
                       </span>

@@ -35,7 +35,7 @@ export default async function CartPage() {
       (sum, item) => sum + item.products.price * item.quantity,
       0
     ) || 0;
-  const shipping = subtotal > 0 ? 10 : 0;
+  const shipping = subtotal > 0 ? 0 : 0;
   const total = subtotal + shipping;
 
   return (
@@ -80,7 +80,7 @@ export default async function CartPage() {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-muted-foreground">Delivery</span>
                       <span className="font-medium">
                         ₵{shipping.toFixed(2)}
                       </span>
