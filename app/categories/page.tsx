@@ -11,10 +11,10 @@ async function getCategories() {
   const { data, error } = await supabase
     .from("categories")
     .select("*")
-    .order("name");
+    .order("name"); // ✅ removed is_active filter (it caused 400)
 
   if (error) {
-    console.error(" Error fetching categories:", error);
+    console.error("Error fetching categories:", error);
     return { categories: [], error };
   }
 
@@ -86,7 +86,7 @@ export default async function CategoriesPage() {
               {categories.map((category) => (
                 <Link
                   key={category.id}
-                  href={`/products?category=${category.slug}`}
+                  href={`/categories/${category.slug}`} // ✅ FIXED: dynamic category route
                 >
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow">
                     <div className="aspect-video relative bg-gradient-to-br from-primary/10 to-primary/5">

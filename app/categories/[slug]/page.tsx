@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 export default function CategoryPage() {
   const params = useParams();
-  const slug = params?.slug;
+  const slug = params?.slug; // e.g. "handbags"
   const supabase = createClient();
 
   const [category, setCategory] = useState<any>(null);
@@ -27,6 +27,7 @@ export default function CategoryPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // ✅ Get logged in user
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -40,6 +41,7 @@ export default function CategoryPage() {
           setCartItemCount(count || 0);
         }
 
+        // ✅ Fetch category details by slug
         const { data: catData, error: catError } = await supabase
           .from("categories")
           .select("*")
@@ -54,10 +56,13 @@ export default function CategoryPage() {
 
         setCategory(catData);
 
+        // ✅ Fetch products that belong to this category
+        // Make sure your `products` table has `category_id` or `category_slug` column
         const { data: prodData, error: prodError } = await supabase
           .from("products")
           .select("*")
-          .eq("category_id", catData.id)
+          .eq("category_id", catData.id) // 🔹 Use this if you link by ID
+          // .eq("category_slug", slug)  // 🔹 OR use this if you link by slug instead
           .eq("is_active", true);
 
         if (prodError) throw prodError;
@@ -138,7 +143,6 @@ export default function CategoryPage() {
 
         {/* Products Section */}
         <section className="py-16 relative overflow-hidden">
-          {/* Background pattern */}
           <div className="absolute inset-0 opacity-5">
             <img
               src="/abstract-geometric-pattern-teal-blue.jpg"
