@@ -100,6 +100,7 @@ export default function AdminOrdersPage() {
               email: order.email,
               orderNumber: order.order_number,
               totalAmount: order.total_amount,
+              orderId: order.id,
             }),
           });
 
@@ -141,15 +142,32 @@ export default function AdminOrdersPage() {
     setOrderItems([]);
     setAddress(null);
 
-    const [{ data: items }, { data: addr }] = await Promise.all([
-      supabase.from("order_items").select("*").eq("order_id", order.id),
-      supabase
-        .from("addresses")
-        .select("*")
-        .eq("order_id", order.id)
-        .maybeSingle(),
-    ]);
+    // Fetch order items with product details (JOIN)
+    const [{ data: items, error: itemsError }, { data: addr }] =
+      await Promise.all([
+        supabase
+          .from("order_items")
+          .select(
+            `
+            id,
+            quantity,
+            price,
+            products (
+              id,
+              name,
+              image_url
+            )
+          `
+          )
+          .eq("order_id", order.id),
+        supabase
+          .from("addresses")
+          .select("*")
+          .eq("order_id", order.id)
+          .maybeSingle(),
+      ]);
 
+    if (itemsError) console.error("Error fetching items:", itemsError);
     if (items) setOrderItems(items);
     if (addr) setAddress(addr);
     setFetchingDetails(false);
@@ -198,7 +216,7 @@ export default function AdminOrdersPage() {
               <CardContent className="flex items-center justify-between p-4">
                 <div>
                   <p className="font-semibold">
-                    #{order.order_number} — ${order.total_amount.toFixed(2)}
+                    #{order.order_number} — ₵{order.total_amount.toFixed(2)}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Placed on{" "}
@@ -302,7 +320,7 @@ export default function AdminOrdersPage() {
                   </div>
                   <div>
                     <p className="font-semibold">Total:</p>
-                    <p>${selectedOrder.total_amount.toFixed(2)}</p>
+                    <p>₵{selectedOrder.total_amount.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="font-semibold">Placed:</p>
@@ -322,31 +340,47 @@ export default function AdminOrdersPage() {
                     </p>
                   </div>
                   {address && (
-                    <>
-                      <div>
-                        <p className="font-semibold">Shipping Address:</p>
-                        <p>{address.line1}</p>
-                        <p>{address.line2}</p>
-                        <p>
-                          {address.city}, {address.state}, {address.postal_code}
-                        </p>
-                        <p>{address.country}</p>
-                      </div>
-                    </>
+                    <div className="col-span-2">
+                      <p className="font-semibold">Shipping Address:</p>
+                      <p>{address.line1}</p>
+                      {address.line2 && <p>{address.line2}</p>}
+                      <p>
+                        {address.city}, {address.state}, {address.postal_code}
+                      </p>
+                      <p>{address.country}</p>
+                    </div>
                   )}
                 </div>
 
-                <div className="mt-4 space-y-2">
-                  {orderItems.map((item) => (
-                    <Card key={item.id}>
-                      <CardContent className="flex justify-between">
-                        <p>{item.product_name}</p>
-                        <p>
-                          {item.quantity} × ${item.price.toFixed(2)}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="mt-6 space-y-3">
+                  <h3 className="font-semibold text-lg">Ordered Items</h3>
+                  {orderItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No items found.
+                    </p>
+                  ) : (
+                    orderItems.map((item) => (
+                      <Card key={item.id}>
+                        <CardContent className="flex items-center justify-between p-3">
+                          <div className="flex items-center gap-3">
+                            {item.products?.image_url && (
+                              <img
+                                src={item.products.image_url}
+                                alt={item.products.name}
+                                className="h-12 w-12 rounded-md object-cover"
+                              />
+                            )}
+                            <p className="font-medium">
+                              {item.products?.name || "Unnamed Product"}
+                            </p>
+                          </div>
+                          <p className="text-sm">
+                            {item.quantity} × ₵{item.price.toFixed(2)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </div>
             )
