@@ -41,7 +41,11 @@ export default async function AdminProductsPage() {
               </AlertDescription>
             </Alert>
             <div className="flex justify-center">
-              <Link href="/" className="text-sm text-primary hover:underline">
+              <Link
+                href="/"
+                className="text-sm text-primary hover:underline"
+                prefetch={false}
+              >
                 Return to Home
               </Link>
             </div>
@@ -63,7 +67,7 @@ export default async function AdminProductsPage() {
           <h1 className="text-2xl font-bold">Manage Products</h1>
           <div className="flex items-center gap-4">
             <Button asChild size="sm">
-              <Link href="/admin/products/new">
+              <Link href="/admin/products/new" prefetch={false}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Link>
@@ -71,6 +75,7 @@ export default async function AdminProductsPage() {
             <Link
               href="/admin"
               className="text-sm text-muted-foreground hover:text-foreground"
+              prefetch={false}
             >
               Back to Dashboard
             </Link>
@@ -84,7 +89,9 @@ export default async function AdminProductsPage() {
             <CardContent className="py-12 text-center">
               <p className="mb-4 text-muted-foreground">No products found</p>
               <Button asChild>
-                <Link href="/admin/products/new">Add Your First Product</Link>
+                <Link href="/admin/products/new" prefetch={false}>
+                  Add Your First Product
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -126,7 +133,10 @@ export default async function AdminProductsPage() {
                     size="sm"
                     className="w-full bg-transparent"
                   >
-                    <Link href={`/admin/products/${product.id}/edit`}>
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
+                      prefetch={false}
+                    >
                       Edit Product
                     </Link>
                   </Button>
