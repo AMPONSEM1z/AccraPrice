@@ -1,64 +1,75 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Loader2, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default async function AdminProductsPage() {
-  const supabase = await createClient();
+export default function AdminProductsPage() {
+  const supabase = createClient();
+  const [products, setProducts] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  if (!user) {
-    redirect("/auth/login?redirect=/admin/products");
+  useEffect(() => {
+    if (search.trim() === "") setFiltered(products);
+    else {
+      const lower = search.toLowerCase();
+      setFiltered(
+        products.filter(
+          (p) =>
+            p.name.toLowerCase().includes(lower) ||
+            p.categories?.name?.toLowerCase().includes(lower)
+        )
+      );
+    }
+  }, [search, products]);
+
+  async function fetchProducts() {
+    setLoading(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/auth/login?redirect=/admin/products";
+      return;
+    }
+
+    const { data: adminCheck } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!adminCheck) {
+      window.location.href = "/";
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*, categories(name)")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setProducts(data);
+      setFiltered(data);
+    }
+
+    setLoading(false);
   }
-
-  const { data: adminCheck, error: adminError } = await supabase
-    .from("admins")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  if (adminError || !adminCheck) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                You do not have admin privileges. Only administrators can access
-                this page.
-              </AlertDescription>
-            </Alert>
-            <div className="flex justify-center">
-              <Link
-                href="/"
-                className="text-sm text-primary hover:underline"
-                prefetch={false}
-              >
-                Return to Home
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const { data: products } = await supabase
-    .from("products")
-    .select("*, categories(name)")
-    .order("created_at", { ascending: false });
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -67,7 +78,7 @@ export default async function AdminProductsPage() {
           <h1 className="text-2xl font-bold">Manage Products</h1>
           <div className="flex items-center gap-4">
             <Button asChild size="sm">
-              <Link href="/admin/products/new" prefetch={false}>
+              <Link href="/admin/products/new">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
               </Link>
@@ -75,7 +86,6 @@ export default async function AdminProductsPage() {
             <Link
               href="/admin"
               className="text-sm text-muted-foreground hover:text-foreground"
-              prefetch={false}
             >
               Back to Dashboard
             </Link>
@@ -84,20 +94,34 @@ export default async function AdminProductsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {!products || products.length === 0 ? (
+        <div className="mb-6 flex items-center justify-between">
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <p className="mb-4 text-muted-foreground">No products found</p>
               <Button asChild>
-                <Link href="/admin/products/new" prefetch={false}>
-                  Add Your First Product
-                </Link>
+                <Link href="/admin/products/new">Add Your First Product</Link>
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {products.map((product) => (
+            {filtered.map((product) => (
               <Card key={product.id} className="overflow-hidden">
                 <div className="relative aspect-square bg-muted">
                   <Image
@@ -117,14 +141,14 @@ export default async function AdminProductsPage() {
                     {product.name}
                   </h3>
                   <p className="mb-2 text-sm text-muted-foreground">
-                    {product.categories?.name}
+                    {product.categories?.name || "Uncategorized"}
                   </p>
                   <div className="mb-4 flex items-center gap-2">
                     <span className="text-lg font-bold text-primary">
-                      ₵{product.price.toFixed(2)}
+                      ₵{product.price?.toFixed(2) || "0.00"}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      Stock: {product.stock_quantity}
+                      Stock: {product.stock_quantity ?? 0}
                     </span>
                   </div>
                   <Button
@@ -133,10 +157,7 @@ export default async function AdminProductsPage() {
                     size="sm"
                     className="w-full bg-transparent"
                   >
-                    <Link
-                      href={`/admin/products/${product.id}/edit`}
-                      prefetch={false}
-                    >
+                    <Link href={`/admin/products/${product.id}/edit`}>
                       Edit Product
                     </Link>
                   </Button>
